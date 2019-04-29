@@ -58,7 +58,15 @@ Jrhdhso=
 -----END CERTIFICATE-----]]
 print(crt)
 
+local rc = openssl.init_crypto()
 
-local crt1 = openssl.csr_crt(key, crt, csr)
-print(crt1)
+for idx = 1, 10, 1 do
+  local crt1 = openssl.csr_crt(key, crt, csr)
+  
+  if crt1 == nil then
+    print("Can't sign CSR\n")
+  end
+  
+  print(crt1)
+end  
 

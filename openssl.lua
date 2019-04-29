@@ -24,10 +24,11 @@ print(crt1)
 local openssl = require("core")
 
 local M = {
-  gen_rsa_key = openssl.gen_rsa_key,
-  gen_csr     = openssl.gen_csr,
-  gen_crt     = openssl.gen_crt,
-  csr_crt     = openssl.csr_crt
+  --gen_rsa_key = openssl.gen_rsa_key,
+  --gen_csr     = openssl.gen_csr,
+  --gen_crt     = openssl.gen_crt,
+  init_crypto = openssl.init_crypto,
+  csr_crt     = openssl.csr_crt,
 }
 
 return M
