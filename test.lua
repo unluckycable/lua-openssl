@@ -1,6 +1,8 @@
 #!/usr/bin/lua
 --[[
+
   make clean && make && ./test.lua ; valgrind -v  --leak-check=full --show-leak-kinds=all ./test.lua
+
 ]]--
 
 

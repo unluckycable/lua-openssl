@@ -172,39 +172,39 @@ int gen_csr(lua_State *L) {
     fprintf(stderr, "X509_REQ_set_version ret != 1!\n");
     return 0;
   }
-  
+
   // 3. set subject of x509 req
   x509_name = X509_REQ_get_subject_name(x509_req);
   ret = X509_NAME_add_entry_by_txt(x509_name,"C", MBSTRING_ASC, (const unsigned char*)szCountry, -1, -1, 0);
   if (ret != 1){
     return 0;
   }
- 
+
   ret = X509_NAME_add_entry_by_txt(x509_name,"ST", MBSTRING_ASC, (const unsigned char*)szProvince, -1, -1, 0);
   if (ret != 1){
     return 0;
   }
- 
+
   ret = X509_NAME_add_entry_by_txt(x509_name,"L", MBSTRING_ASC, (const unsigned char*)szCity, -1, -1, 0);
   if (ret != 1){
     return 0;
   }
- 
+
   ret = X509_NAME_add_entry_by_txt(x509_name,"O", MBSTRING_ASC, (const unsigned char*)szOrganization, -1, -1, 0);
   if (ret != 1){
     return 0;
   }
- 
+
   ret = X509_NAME_add_entry_by_txt(x509_name,"CN", MBSTRING_ASC, (const unsigned char*)szCommon, -1, -1, 0);
   if (ret != 1){
     return 0;
   }
- 
+
   ret = X509_REQ_set_pubkey(x509_req, pKey);
   if (ret != 1){
     return 0;
   }
- 
+
   // 5. set sign key of x509 req
   ret = X509_REQ_sign(x509_req, pKey, EVP_sha256());    // return x509_req->signature->length // sha256
   if (ret <= 0){
@@ -213,7 +213,7 @@ int gen_csr(lua_State *L) {
 
   out = BIO_new(BIO_s_mem());
   ret = PEM_write_bio_X509_REQ(out, x509_req);
-  
+
   const size_t len = BIO_get_mem_data (out, &buf);
   char *rret = (char *) calloc (1, 1 + len);
   if (rret) {
@@ -273,7 +273,7 @@ int gen_crt(lua_State *L) {
   // create cert
   X509 *newcert = NULL;
 
-  
+
   /* --------------------------------------------------------- *
    * Build Certificate with data from request                  *
    * ----------------------------------------------------------*/
@@ -340,10 +340,7 @@ int gen_crt(lua_State *L) {
      fprintf(stderr, "Error setting expiration time\n");
       return 0;
    }
-  
 
-
-  
   // x509_name = X509_REQ_get_subject_name(x509_req);
   x509_name = X509_get_subject_name(newcert);
   ret = X509_NAME_add_entry_by_txt(x509_name,"C", MBSTRING_ASC, (const unsigned char*)szCountry, -1, -1, 0);
@@ -351,25 +348,25 @@ int gen_crt(lua_State *L) {
     fprintf(stderr, "1 \n");
     return 0;
   }
- 
+
   ret = X509_NAME_add_entry_by_txt(x509_name,"ST", MBSTRING_ASC, (const unsigned char*)szProvince, -1, -1, 0);
   if (ret != 1){
     fprintf(stderr, "2 \n");
     return 0;
   }
- 
+
   ret = X509_NAME_add_entry_by_txt(x509_name,"L", MBSTRING_ASC, (const unsigned char*)szCity, -1, -1, 0);
   if (ret != 1){
     fprintf(stderr, "3 \n");
     return 0;
   }
- 
+
   ret = X509_NAME_add_entry_by_txt(x509_name,"O", MBSTRING_ASC, (const unsigned char*)szOrganization, -1, -1, 0);
   if (ret != 1){
     fprintf(stderr, "4 \n");
     return 0;
   }
- 
+
   ret = X509_NAME_add_entry_by_txt(x509_name,"CN", MBSTRING_ASC, (const unsigned char*)szCommon, -1, -1, 0);
   if (ret != 1){
     fprintf(stderr, "5 \n");
@@ -415,7 +412,7 @@ int gen_crt(lua_State *L) {
     return 0;
   }
   X509_EXTENSION_free(extension);
-  
+
 
    /* ----------------------------------------------------------- *
    * Set digest type, sign new certificate with CA's private key *
@@ -450,7 +447,7 @@ int gen_crt(lua_State *L) {
    lua_pushlstring(L, rret, len + 1);
 
    free(rret);
-  
+
   /*  // free pkey */
   /* free(rsa); */
   BIO_free_all(pkeybio);
@@ -459,7 +456,7 @@ int gen_crt(lua_State *L) {
   // free cert
   X509_free(newcert);
   ASN1_INTEGER_free (aserial);
-  
+
   BIO_free_all(outbio);
   /* // X509_NAME_free(x509_name); */
 
@@ -529,7 +526,6 @@ int csr_crt(lua_State *L) {
   // load pca
   BIO *cacertbio = BIO_new_mem_buf(crt, crt_len);
   X509 *cacert = PEM_read_bio_X509(cacertbio, NULL, NULL, NULL);
-  
 
   // load csr
   /* ---------------------------------------------------------- *
@@ -541,10 +537,10 @@ int csr_crt(lua_State *L) {
     fprintf(stderr, "Error can't read X509 request data into memory\n");
     return 0;
   }
-  
+
   // create cert
   X509 *newcert = NULL;
- 
+
   /* --------------------------------------------------------- *
    * Build Certificate with data from request                  *
    * ----------------------------------------------------------*/
@@ -707,9 +703,6 @@ int csr_crt(lua_State *L) {
 
   free(rret);
 
-  
-  
-
   /*  // -- free */
   /*  BIO_free_all(pkeybio); */
   /*   */
@@ -726,8 +719,6 @@ int csr_crt(lua_State *L) {
    /* free(csr); */
 
    // -- end free
-
-   
 
    return 1;
 }
