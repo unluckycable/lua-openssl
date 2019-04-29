@@ -1,19 +1,4 @@
 /*
-// https://en.wikibooks.org/wiki/OpenSSL/Error_handling
-// https://riptutorial.com/Download/openssl.pdf
-// https://zakird.com/2013/10/13/certificate-parsing-with-openssl
-// http://fm4dd.com/openssl/certcreate.htm
-// http://fm4dd.com/openssl/certrenewal.htm
-// https://security.stackexchange.com/questions/184845/how-to-generate-csrcertificate-signing-request-using-c-and-openssl
-// https://curl.haxx.se/libcurl/c/usercertinmem.html
-// https://doginthehat.com.au/2014/04/basic-openssl-rsa-encryptdecrypt-example-in-cocoa/
-// www.opensource.apple.com/source/OpenSSL/OpenSSL-22/openssl/demos/x509/mkcert.c
-// http://fm4dd.com/openssl/manual-ssl/
-// http://fm4dd.com/openssl/pkcs12test.htm
-// https://github.com/openssl/openssl/blob/master/test/v3nametest.c
-// https://www.sslshopper.com/article-most-common-openssl-commands.html
-// https://wiki.openssl.org/index.php/Main_Page
-// https://ecn.io/pragmatically-generating-a-self-signed-certificate-and-private-key-using-openssl-d1753528e3d2
 */
 
 #define LUA_LIB
@@ -84,7 +69,7 @@ int gen_rsa_key(lua_State *L) {
   BN_set_word(bn, RSA_F4);
   RSA_generate_key_ex(rsa, kBits, bn, NULL);
   EVP_PKEY_assign_RSA(pkey, rsa);
-  rsa = NULL;   // will be free rsa when EVP_PKEY_free(pKey)
+  rsa = NULL; // will be free rsa when EVP_PKEY_free(pKey)
 
   bio = BIO_new(BIO_s_mem());
 
@@ -99,16 +84,17 @@ int gen_rsa_key(lua_State *L) {
   );
 
   size_t len = BIO_get_mem_data (bio, &buf);
-  char *rret = (char *) calloc (1, 1 + len);
-  if (rret) {
-    memcpy (rret, buf, len);
-  }
+  /* char *rret = (char *) calloc (1, 1 + len); */
+  /* if (rret) { */
+  /*   memcpy (rret, buf, len); */
+  /* } */
 
-  lua_pushlstring(L, rret, len + 1);
+  lua_pushlstring(L, buf, len);
 
   BIO_free_all(bio);
   EVP_PKEY_free(pkey);
-  free(rret);
+  // free(rret);
+  // free(buf);
   BN_free(bn);
 
   return 1;
@@ -215,11 +201,11 @@ int gen_csr(lua_State *L) {
   ret = PEM_write_bio_X509_REQ(out, x509_req);
 
   const size_t len = BIO_get_mem_data (out, &buf);
-  char *rret = (char *) calloc (1, 1 + len);
-  if (rret) {
-    memcpy (rret, buf, len);
-  }
-  lua_pushlstring(L, rret, len + 1);
+  /* char *rret = (char *) calloc (1, 1 + len); */
+  /* if (rret) { */
+  /*   memcpy (rret, buf, len); */
+  /* } */
+  lua_pushlstring(L, buf, len);
 
   EVP_PKEY_free(pKey);
   BIO_free_all(pkeybio);
@@ -227,7 +213,7 @@ int gen_csr(lua_State *L) {
   X509_REQ_free(x509_req);
   BIO_free_all(out);
 
-  free(rret);
+  // free(rret);
 
   return 1;
 }
@@ -440,13 +426,13 @@ int gen_crt(lua_State *L) {
    char *buf = NULL;
 
   size_t len = BIO_get_mem_data (outbio, &buf);
-   char *rret = (char *) calloc (1, 1 + len);
-   if (rret) {
-     memcpy (rret, buf, len);
-   }
-   lua_pushlstring(L, rret, len + 1);
+  /* char *rret = (char *) calloc (1, 1 + len); */
+  /* if (rret) { */
+  /*   memcpy (rret, buf, len); */
+  /* } */
+  lua_pushlstring(L, buf, len);
 
-   free(rret);
+  // free(rret);
 
   /*  // free pkey */
   /* free(rsa); */
@@ -674,11 +660,11 @@ int csr_crt(lua_State *L) {
 
    char *buf = NULL;
    size_t len = BIO_get_mem_data (outbio, &buf);
-   char *rret = (char *) calloc (1, 1 + len);
-   if (rret) {
-     memcpy (rret, buf, len);
-   }
-   lua_pushlstring(L, rret, len + 1);
+   /* char *rret = (char *) calloc (1, 1 + len); */
+   /* if (rret) { */
+   /*   memcpy (rret, buf, len); */
+   /* } */
+   lua_pushlstring(L, buf, len);
 
 
   BIO_free_all(pkeybio);
@@ -701,7 +687,7 @@ int csr_crt(lua_State *L) {
   BIO_free_all(outbio);
 
 
-  free(rret);
+  // free(rret);
 
   /*  // -- free */
   /*  BIO_free_all(pkeybio); */

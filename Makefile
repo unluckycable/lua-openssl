@@ -8,7 +8,12 @@ core.so: core.c
 	$(CC) -o core.so $(LIBFLAG) $(CFLAGS) core.c -I$(LUA_LIBDIR) -llua5.1 -lssl -lcrypto
 
 clean:
-	$(RM) core.so
+	$(RM) *.so
+	$(RM) *.crt
+	$(RM) *.csr
+	$(RM) *.key
+
+
 
 install:
 	install -d -m0755        $(DESTDIR)/usr/lib/lua

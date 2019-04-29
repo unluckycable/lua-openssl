@@ -1,4 +1,5 @@
-*.so
-*.csr
-*.crt
 *.cert
+*.crt
+*.csr
+*.key
+*.so
