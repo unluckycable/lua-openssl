@@ -84,13 +84,14 @@ int gen_rsa_key(lua_State *L) {
   BN_set_word(bn, RSA_F4);
   RSA_generate_key_ex(rsa, kBits, bn, NULL);
   EVP_PKEY_assign_RSA(pkey, rsa);
+  rsa = NULL;   // will be free rsa when EVP_PKEY_free(pKey)
 
   bio = BIO_new(BIO_s_mem());
 
   PEM_write_bio_PrivateKey(
-     bio,                
-     pkey,               
-     EVP_des_ede3_cbc(), 
+     bio,
+     pkey,
+     EVP_des_ede3_cbc(),
      "replace_me",        /* replace_me */
      10,                  /* 10 */
      NULL,                /* callback for requesting a password */
@@ -102,11 +103,13 @@ int gen_rsa_key(lua_State *L) {
   if (rret) {
     memcpy (rret, buf, len);
   }
+
   lua_pushlstring(L, rret, len + 1);
 
-  BIO_free(bio);
+  BIO_free_all(bio);
   EVP_PKEY_free(pkey);
   free(rret);
+  BN_free(bn);
 
   return 1;
 }
@@ -136,26 +139,31 @@ int gen_csr(lua_State *L) {
 
   pkeybio = BIO_new_mem_buf(pkey, pkey_len);
 
-  rsa = PEM_read_bio_RSAPrivateKey(pkeybio, NULL, 0, password);
+  rsa = PEM_read_bio_RSAPrivateKey (pkeybio, NULL, 0, password);
   if (rsa == NULL) {
     fprintf(stderr, "Failed to create key bio!\n");
     return 0;
   }
 
+  // set public key of x509 req
+  EVP_PKEY *pKey = EVP_PKEY_new();;
+  EVP_PKEY_assign_RSA(pKey, rsa);
+  rsa = NULL;   // will be free rsa when EVP_PKEY_free(pKey)
+
   // declare
   int ret;
   int nVersion = 1;
-  X509_REQ *x509_req = NULL;
+  X509_REQ *x509_req   = NULL;
   X509_NAME *x509_name = NULL;
-  EVP_PKEY *pKey = NULL;
-  BIO *out = NULL;
-  char *buf = NULL;
+  BIO *out             = NULL;
+  char *buf            = NULL;
 
-  const char      *szCountry = "CA";
-  const char      *szProvince = "BC";
-  const char      *szCity = "Vancouver";
-  const char      *szOrganization = "Dynamsoft";
-  const char      *szCommon = "localhost";
+  // csr info
+  const char *szCountry      = "CA";
+  const char *szProvince     = "BC";
+  const char *szCity         = "Vancouver";
+  const char *szOrganization = "Dynamsoft";
+  const char *szCommon       = "localhost";
 
   // 2. set version of x509 req
   x509_req = X509_REQ_new();
@@ -191,11 +199,6 @@ int gen_csr(lua_State *L) {
   if (ret != 1){
     return 0;
   }
-
-  // 4. set public key of x509 req
-  pKey = EVP_PKEY_new();
-  EVP_PKEY_assign_RSA(pKey, rsa);
-  rsa = NULL;   // will be free rsa when EVP_PKEY_free(pKey)
  
   ret = X509_REQ_set_pubkey(x509_req, pKey);
   if (ret != 1){
@@ -218,21 +221,13 @@ int gen_csr(lua_State *L) {
   }
   lua_pushlstring(L, rret, len + 1);
 
-  BIO_free_all(out);
+  EVP_PKEY_free(pKey);
   BIO_free_all(pkeybio);
 
-  EVP_PKEY_free(pKey);
   X509_REQ_free(x509_req);
+  BIO_free_all(out);
+
   free(rret);
-
-  free(buf);
-  free(rsa);
-
-  // X509_NAME_free(x509_name);
-
-  // free(pkey);
-  
-
 
   return 1;
 }
@@ -271,17 +266,13 @@ int gen_crt(lua_State *L) {
   // 4. set public key of x509 req
   pKey = EVP_PKEY_new();
   EVP_PKEY_assign_RSA(pKey, rsa);
-  // rsa = NULL;   // will be free rsa when EVP_PKEY_free(pKey)
+  rsa = NULL;   // will be free rsa when EVP_PKEY_free(pKey)
 
 
 
   // create cert
   X509 *newcert = NULL;
 
-
-
-
-  ASN1_INTEGER  *aserial = NULL;
   
   /* --------------------------------------------------------- *
    * Build Certificate with data from request                  *
@@ -305,6 +296,8 @@ int gen_crt(lua_State *L) {
    * set the certificate serial number here                    *
    * If there is a problem, the value defaults to '0'          *
    * ----------------------------------------------------------*/
+
+  ASN1_INTEGER  *aserial = NULL;
 
   aserial=ASN1_INTEGER_new();
   ASN1_INTEGER_set(aserial, 0);
@@ -343,7 +336,6 @@ int gen_crt(lua_State *L) {
    }
 
    long valid_secs = 31536000;
-
    if(! (X509_gmtime_adj(X509_get_notAfter(newcert), valid_secs))) {
      fprintf(stderr, "Error setting expiration time\n");
       return 0;
@@ -384,13 +376,13 @@ int gen_crt(lua_State *L) {
     return 0;
   }
 
-  /* /\* --------------------------------------------------------- * */
-  /*  * Set the new certificate subject name                      * */
-  /*  * ----------------------------------------------------------*\/ */
-  /* /\* if (X509_set_subject_name(newcert, x509_name) != 1) { *\/ */
-  /* /\*   fprintf(stderr, "Error setting subject name of certificate\n"); *\/ */
-  /* /\*   return 0; *\/ */
-  /* /\*  } *\/ */
+  /* --------------------------------------------------------- *
+   * Set the new certificate subject name                      *
+   * ----------------------------------------------------------*/
+  /* if (X509_set_subject_name(newcert, x509_name) != 1) { */
+  /*   fprintf(stderr, "Error setting subject name of certificate\n"); */
+  /*   return 0; */
+  /*  } */
 
   /* --------------------------------------------------------- *
    * Set the new certificate issuer name                       *
@@ -449,7 +441,8 @@ int gen_crt(lua_State *L) {
    }
 
    char *buf = NULL;
-   size_t len = BIO_get_mem_data (outbio, &buf);
+
+  size_t len = BIO_get_mem_data (outbio, &buf);
    char *rret = (char *) calloc (1, 1 + len);
    if (rret) {
      memcpy (rret, buf, len);
@@ -457,20 +450,19 @@ int gen_crt(lua_State *L) {
    lua_pushlstring(L, rret, len + 1);
 
    free(rret);
-
-
   
-   // free pkey
+  /*  // free pkey */
+  /* free(rsa); */
   BIO_free_all(pkeybio);
-  free(rsa);
   EVP_PKEY_free(pKey);
 
   // free cert
   X509_free(newcert);
-  BIO_free_all(outbio);
-  // X509_NAME_free(x509_name);
-
+  ASN1_INTEGER_free (aserial);
   
+  BIO_free_all(outbio);
+  /* // X509_NAME_free(x509_name); */
+
   return 1;
 }
 
@@ -494,7 +486,6 @@ int csr_crt(lua_State *L) {
     return 0;
   }
 
-
   if (lua_isstring(L, 2) != 1) {
     fprintf(stderr, "second argument must be string: crt!\n");
     return 0;
@@ -517,9 +508,12 @@ int csr_crt(lua_State *L) {
     return 0;
   }
 
+  // printf("\n%s\n%s\n%s\n", pkey, crt, csr);
+
 
   // load pkey
   char *password = "replace_me";
+
   BIO *pkeybio = BIO_new_mem_buf(pkey, pkey_len);
   RSA *rsa = PEM_read_bio_RSAPrivateKey(pkeybio, NULL, 0, password);
   if (rsa == NULL) {
@@ -530,7 +524,7 @@ int csr_crt(lua_State *L) {
   // 4. set public key of x509 req
   EVP_PKEY *pKey = EVP_PKEY_new();;
   EVP_PKEY_assign_RSA(pKey, rsa);
-  // rsa = NULL;   // will be free rsa when EVP_PKEY_free(pKey)
+  rsa = NULL;   // will be free rsa when EVP_PKEY_free(pKey)
 
   // load pca
   BIO *cacertbio = BIO_new_mem_buf(crt, crt_len);
@@ -690,14 +684,52 @@ int csr_crt(lua_State *L) {
    }
    lua_pushlstring(L, rret, len + 1);
 
-   free(rret);
 
+  BIO_free_all(pkeybio);
+  EVP_PKEY_free(pKey);
+
+  BIO_free_all(cacertbio);
+  X509_free(cacert);
+
+  BIO_free_all(reqbio);
+  X509_REQ_free(certreq);
+
+  X509_free(newcert);
+
+  ASN1_INTEGER_free(aserial);
+
+  // X509_NAME_free(name);
+
+  EVP_PKEY_free(req_pubkey);
+
+  BIO_free_all(outbio);
+
+
+  free(rret);
 
   
-
   
 
-  return 1;
+  /*  // -- free */
+  /*  BIO_free_all(pkeybio); */
+  /*   */
+  /*  BIO_free_all(outbio); */
+
+  /*  EVP_PKEY_free(pKey); */
+  /*   */
+
+  /*  X509_REQ_free(certreq); */
+  /*  X509_free(newcert); */
+
+   /* free(pkey); */
+   /* free(crt); */
+   /* free(csr); */
+
+   // -- end free
+
+   
+
+   return 1;
 }
 
 // Register library using this array
