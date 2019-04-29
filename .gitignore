@@ -2,3 +2,8 @@
 *.csr
 *.crt
 *.cert
+.project
+.cproject
+openssl
+.settings
+c_test
